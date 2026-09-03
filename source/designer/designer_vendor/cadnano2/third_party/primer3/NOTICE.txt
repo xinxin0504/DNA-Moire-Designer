@@ -1,0 +1,16 @@
+Primer3 / primer3-py integration notice
+======================================
+
+This application can call primer3-py for local oligonucleotide
+thermodynamic analysis. Primer3 and primer3-py are free software distributed
+under the GNU General Public License version 2 (or, for Primer3 where stated,
+any later version).
+
+Primer3 project and corresponding source:
+https://github.com/primer3-org/primer3
+
+primer3-py project and corresponding source:
+https://github.com/libnano/primer3-py
+
+The Primer3 and primer3-py projects are not authored by the cadnano_xinxin
+maintainers. Their copyright notices and license terms remain applicable.

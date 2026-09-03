@@ -1,0 +1,79 @@
+{
+  "reference_sha256": "5cf88ca67ea6c22db1544bd9da615832eba5957299f39e42903d5ff3669bad26",
+  "seed": {
+    "cross_section": "8x8_minus_4x4_pore",
+    "helix_numbers": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47],
+    "face1": {
+      "all": [0, 1, 2, 3, 4, 5, 6, 7],
+      "origin_half": [0, 1, 2, 3],
+      "translated_half": [4, 5, 6, 7]
+    },
+    "face2": {
+      "all": [24, 25, 26, 27, 28, 29, 30, 31],
+      "origin_half": [28, 29, 30, 31],
+      "translated_half": [24, 25, 26, 27]
+    }
+  },
+  "kagome_sst": {
+    "active_helices": [48, 49, 50, 51, 52, 54, 56, 57, 58, 59, 60, 62],
+    "hole_helices": [53, 55, 61, 63],
+    "scaf_linear_helices": [52, 54, 60, 62],
+    "stap_linear_helices": [48, 50, 56, 58]
+  },
+  "reference_regions": [
+    {
+      "scaf": [48, 175],
+      "stap": [40, 183],
+      "capture_positions": [56, 72, 88, 104, 120, 136, 152, 168]
+    },
+    {
+      "scaf": [208, 335],
+      "stap": [200, 343],
+      "capture_positions": [216, 232, 248, 264, 280, 296, 312, 328]
+    },
+    {
+      "scaf": [368, 495],
+      "stap": [360, 503],
+      "capture_positions": [376, 392, 408, 424, 440, 456, 472, 488]
+    }
+  ],
+  "origin_phase_mappings": {
+    "A0": [[48, 31], [50, 29]],
+    "B0": [[49, 30], [51, 28], [60, 3], [62, 1]]
+  },
+  "kagome_sst_origin_anchor_classes": {
+    "classification_baseline": "unmodified kagome_resource_128.json SST routing",
+    "count_unit": "Kagome SST endpoints connected to Seed",
+    "sst_crossover": {
+      "endpoint_count": 48,
+      "original_crossover_pair_count": 24,
+      "helices": [49, 51, 60, 62],
+      "bases": [56, 88, 120, 152, 216, 248, 280, 312, 376, 408, 440, 472],
+      "edit": "remove both reciprocal directions of each original SST-SST crossover, then connect both exposed SST endpoints to their corresponding Seed contacts"
+    },
+    "preexisting_nick": {
+      "endpoint_count": 18,
+      "helices": [48, 50],
+      "bases": [72, 104, 136, 232, 264, 296, 392, 424, 456],
+      "edit": "extend the correctly oriented free endpoint to Seed without introducing another cut"
+    },
+    "linear_continuous": {
+      "endpoint_count": 6,
+      "helices": [48, 50],
+      "bases": [168, 328, 488],
+      "edit": "reciprocally cut the same-helix linear bond, then connect the correctly oriented new endpoint to Seed"
+    }
+  },
+  "anchor_classification_policy": "classify every candidate against an immutable pre-capture Kagome SST routing snapshot before applying any edit; mutations can create new nicks and must not change later classifications",
+  "square_only_hole_mappings": {
+    "A0": [[61, 2], [63, 0]]
+  },
+  "zero_phase_shift_translation_expectation": {
+    "A1": [[48, 27], [50, 25]],
+    "B1": [[49, 26], [51, 24], [60, 7], [62, 5]],
+    "excluded_hole_contacts": [[61, 6], [63, 4]]
+  },
+  "translated_half_policy": "derive from translated SST geometry, active mask, actual base phase, and actual component path; do not copy mappings blindly",
+  "capture_extension_policy": "trace the contacted SST staple component from bridge base to its endpoint; valid reference lengths are 16 or 32 nt",
+  "structure_policy": "draw origin-half bridges only; add translated-half captures as export-only sequences"
+}

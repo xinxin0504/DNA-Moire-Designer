@@ -1,0 +1,402 @@
+from cadnano2.cadnano import app
+from .pathview.colorpanel import ColorPanel
+from .pathview.tools.pathtoolmanager import PathToolManager
+from .sliceview.slicerootitem import SliceRootItem
+from .pathview.pathrootitem import PathRootItem
+from .pathview.hybridoverlay import HybridConnectionOverlay
+
+from .sliceview.tools.slicetoolmanager import SliceToolManager
+import cadnano2.ui.mainwindow.ui_mainwindow as ui_mainwindow
+import cadnano2.util as util
+
+util.qtWrapImport('QtCore', globals(), ['pyqtSignal', 'Qt', 'QFileInfo',
+                                        'QPoint', 'QSettings', 'QSize',
+                                        ])
+util.qtWrapImport('QtGui', globals(), ['QAction', 'QIcon', 'QPaintEngine'])
+util.qtWrapImport('QtWidgets', globals(), [
+                                           
+                                           'QApplication',
+                                           'QGraphicsObject',
+                                           'QGraphicsScene',
+                                           'QGraphicsView',
+                                           'QGraphicsItem',
+                                           'QGraphicsRectItem',
+                                           'QDockWidget',
+                                           'QMainWindow',
+                                           'QHBoxLayout',
+                                           'QLabel',
+                                           'QSplitter',
+                                           'QVBoxLayout',
+                                           'QWidget',
+                                           ])
+
+# for OpenGL mode
+try:
+    from OpenGL import GL
+except:
+    GL = False
+
+GL = False
+
+
+class DocumentWindow(QMainWindow, ui_mainwindow.Ui_MainWindow):
+    """docstring for DocumentWindow"""
+    def __init__(self, parent=None, docCtrlr=None):
+        super(DocumentWindow, self).__init__(parent)
+        self.controller = docCtrlr
+        doc = docCtrlr.document()
+        self.setupUi(self)
+        self._moireDesignerWindow = None
+        self._installMoireDesignerAction()
+        self._threeDDock = None
+        self._threeDView = None
+        self.settings = QSettings()
+        self._readSettings()
+        # Slice setup
+        self.slicescene = QGraphicsScene(parent=self.sliceGraphicsView)
+        self.sliceroot = SliceRootItem(rect=self.slicescene.sceneRect(),\
+                                       parent=None,\
+                                       window=self,\
+                                       document=doc)
+        self.sliceroot.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+        self.slicescene.addItem(self.sliceroot)
+        self.slicescene.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
+        assert self.sliceroot.scene() == self.slicescene
+        self.sliceGraphicsView.setScene(self.slicescene)
+        self.sliceGraphicsView.sceneRootItem = self.sliceroot
+        self.sliceGraphicsView.setName("SliceView")
+        self.sliceToolManager = SliceToolManager(self)
+        # Path setup
+        self.pathscene = QGraphicsScene(parent=self.pathGraphicsView)
+        self.pathroot = PathRootItem(rect=self.pathscene.sceneRect(),\
+                                     parent=None,\
+                                     window=self,\
+                                     document=doc)
+        self.pathroot.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+        self.pathscene.addItem(self.pathroot)
+        self.pathscene.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
+        assert self.pathroot.scene() == self.pathscene
+        self.pathGraphicsView.setScene(self.pathscene)
+        self.pathGraphicsView.sceneRootItem = self.pathroot
+        self.pathGraphicsView.setScaleFitFactor(0.9)
+        self.pathGraphicsView.setName("PathView")
+        self.pathColorPanel = ColorPanel()
+        self.pathColorPanels = (self.pathColorPanel,)
+        self.pathGraphicsView.toolbar = self.pathColorPanel  # HACK for customqgraphicsview
+        self.pathscene.addItem(self.pathColorPanel)
+        self.pathToolManager = PathToolManager(self)
+        self.sliceToolManager.pathToolManager = self.pathToolManager
+        self.pathToolManager.sliceToolManager = self.sliceToolManager
+        self.tool_managers = (self.sliceToolManager, self.pathToolManager)
+        self._setupHybridViews(doc)
+
+        # set the selection filter default
+        doc.documentSelectionFilterChangedSignal.emit(
+            ["endpoint", "scaffold", "staple"])
+
+        self.pathGraphicsView.setupGL()
+        self.sliceGraphicsView.setupGL()
+        if GL:
+            pass
+            # self.slicescene.drawBackground = self.drawBackgroundGL
+            # self.pathscene.drawBackground = self.drawBackgroundGL
+
+        if app().isInMaya():
+            from .solidview.solidrootitem import SolidRootItem
+            self.splitter.setOrientation(Qt.Vertical)
+            self.setUnifiedTitleAndToolBarOnMac(False)
+            modState = self.actionModify.isChecked()
+            self.solidroot = SolidRootItem(parent=None, document=doc,
+                                           modState=modState)
+
+        # Edit menu setup
+        self.actionUndo = docCtrlr.undoStack().createUndoAction(self)
+        self.actionRedo = docCtrlr.undoStack().createRedoAction(self)
+        self.actionUndo.setText(QApplication.translate("MainWindow", "Undo", None))
+        self.actionUndo.setShortcut(QApplication.translate("MainWindow", "Ctrl+Z", None))
+        self.actionRedo.setText(QApplication.translate("MainWindow", "Redo", None))
+        self.actionRedo.setShortcut(QApplication.translate("MainWindow", "Ctrl+Shift+Z", None))
+
+        self.sep = QAction(self)
+        self.sep.setSeparator(True)
+        self.menuEdit.insertAction(self.actionModify, self.sep)
+        self.menuEdit.insertAction(self.sep, self.actionRedo)
+        self.menuEdit.insertAction(self.actionRedo, self.actionUndo)
+        self.splitter.setSizes([400, 400])  # balance splitter size
+        self.statusBar().showMessage("")
+
+    def _installMoireDesignerAction(self):
+        """Add the shared standalone Moire UI next to Twist and Bend."""
+        try:
+            from moire_designer.mainwindow import APP_ROOT
+        except Exception:
+            return
+        self.actionMoireDesign = QAction(self)
+        self.actionMoireDesign.setObjectName("actionMoireDesign")
+        self.actionMoireDesign.setText("Moiré Design")
+        self.actionMoireDesign.setIconText("Moiré\nDesign")
+        self.actionMoireDesign.setToolTip(
+            "Design a DNA-origami-seeded Square bilayer moiré superlattice")
+        icon = APP_ROOT / "assets" / "moire-design.svg"
+        if icon.is_file():
+            self.actionMoireDesign.setIcon(QIcon(str(icon)))
+        self.topToolBar.insertAction(
+            self.actionAutoScaffoldWithoutCS, self.actionMoireDesign)
+        self.actionMoireDesign.triggered.connect(self._showMoireDesigner)
+
+    def _showMoireDesigner(self):
+        from moire_designer.mainwindow import create_window
+        if self._moireDesignerWindow is None:
+            self._moireDesignerWindow = create_window(
+                None, cadnano_controller=self.controller)
+        self._moireDesignerWindow.show()
+        self._moireDesignerWindow.raise_()
+        self._moireDesignerWindow.activateWindow()
+
+    def _setupHybridViews(self, document):
+        """Build the four filtered views used only by Hybrid documents."""
+        container = self.hybridViewContainer = QWidget(self.centralwidget)
+        containerLayout = QHBoxLayout(container)
+        containerLayout.setContentsMargins(0, 0, 0, 0)
+        outer = self.hybridOuterSplitter = QSplitter(
+            Qt.Orientation.Horizontal, container)
+        sliceColumn = QSplitter(Qt.Orientation.Vertical, outer)
+        pathColumn = self.hybridPathColumn = QSplitter(
+            Qt.Orientation.Vertical, outer)
+        outer.addWidget(sliceColumn)
+        outer.addWidget(pathColumn)
+        containerLayout.addWidget(outer)
+
+        honeyFilter = lambda part: part._step == 21
+        squareFilter = lambda part: part._step == 32
+        self.hybridHoneySliceGraphicsView, self.hybridHoneySliceScene, \
+            self.hybridHoneySliceRoot = self._createHybridPanel(
+                sliceColumn, "Honeycomb · Slice View", True,
+                document, honeyFilter, "HybridHoneySlice")
+        self.hybridSquareSliceGraphicsView, self.hybridSquareSliceScene, \
+            self.hybridSquareSliceRoot = self._createHybridPanel(
+                sliceColumn, "Square · Slice View", True,
+                document, squareFilter, "HybridSquareSlice")
+        self.hybridHoneyPathGraphicsView, self.hybridHoneyPathScene, \
+            self.hybridHoneyPathRoot = self._createHybridPanel(
+                pathColumn, "Honeycomb · Path View", False,
+                document, honeyFilter, "HybridHoneyPath")
+        self.hybridSquarePathGraphicsView, self.hybridSquarePathScene, \
+            self.hybridSquarePathRoot = self._createHybridPanel(
+                pathColumn, "Square · Path View", False,
+                document, squareFilter, "HybridSquarePath")
+        honeyColorPanel = ColorPanel(master=self.pathColorPanel)
+        squareColorPanel = ColorPanel(master=self.pathColorPanel)
+        honeyColorPanel.setZValue(100000)
+        squareColorPanel.setZValue(100000)
+        self.hybridHoneyPathScene.addItem(honeyColorPanel)
+        self.hybridSquarePathScene.addItem(squareColorPanel)
+        self.hybridHoneyPathGraphicsView.toolbar = honeyColorPanel
+        self.hybridSquarePathGraphicsView.toolbar = squareColorPanel
+        self.pathColorPanels = (
+            self.pathColorPanel, honeyColorPanel, squareColorPanel)
+        if str(self.pathToolManager.activeTool()) == "paintTool":
+            honeyColorPanel.show()
+            squareColorPanel.show()
+
+        self.hybridConnectionOverlay = HybridConnectionOverlay(
+            container, pathColumn, document,
+            self.hybridHoneyPathGraphicsView, self.hybridHoneyPathRoot,
+            self.hybridSquarePathGraphicsView, self.hybridSquarePathRoot)
+
+        sliceColumn.setSizes([400, 400])
+        pathColumn.setSizes([400, 400])
+        outer.setSizes([400, 700])
+        self.gridLayout.addWidget(container, 0, 0, 1, 1)
+        container.hide()
+        self.actionPathHybrid.setEnabled(False)
+
+    def _createHybridPanel(self, parentSplitter, title, isSlice,
+                           document, partFilter, name):
+        wrapper = QWidget(parentSplitter)
+        layout = QVBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        label = QLabel(title, wrapper)
+        label.setStyleSheet(
+            "QLabel { padding: 3px 8px; font-weight: 600; "
+            "border-bottom: 1px solid palette(mid); }")
+        layout.addWidget(label)
+        view = type(self.sliceGraphicsView)(wrapper)
+        view.setMouseTracking(True)
+        view.setFocusPolicy(Qt.FocusPolicy.WheelFocus)
+        view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        view.setRenderHints(self.sliceGraphicsView.renderHints())
+        view.setTransformationAnchor(
+            QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        view.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        layout.addWidget(view)
+        scene = QGraphicsScene(parent=view)
+        if isSlice:
+            root = SliceRootItem(rect=scene.sceneRect(), parent=None,
+                                 window=self, document=document,
+                                 partFilter=partFilter)
+            root.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+            view.setName(name)
+        else:
+            root = PathRootItem(rect=scene.sceneRect(), parent=None,
+                                window=self, document=document,
+                                partFilter=partFilter)
+            root.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+            view.setScaleFitFactor(0.9)
+            view.setName(name)
+            view.toolbar = self.pathColorPanel
+        scene.addItem(root)
+        scene.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
+        view.setScene(scene)
+        view.sceneRootItem = root
+        view.setupGL()
+        parentSplitter.addWidget(wrapper)
+        return view, scene, root
+
+    def setHybridMode(self, enabled):
+        enabled = bool(enabled)
+        self.splitter.setVisible(not enabled)
+        self.hybridViewContainer.setVisible(enabled)
+        self.actionPathHybrid.setEnabled(enabled)
+        self.hybridConnectionOverlay.setActive(enabled)
+        if enabled and str(self.pathToolManager.activeTool()) == "paintTool":
+            for panel in self.pathColorPanels:
+                panel.setEnabled(True)
+                panel.setZValue(100000)
+                panel.show()
+                panel.update()
+        if not enabled and self.actionPathHybrid.isChecked():
+            self.actionPathSelect.trigger()
+
+    def destroyWin(self):
+        self.setThreeDVisible(False)
+        self.settings.beginGroup("MainWindow")
+        self.settings.setValue("state", self.saveState())
+        self.settings.endGroup()
+        self.controller = None
+
+    def setThreeDVisible(self, isVisible):
+        """Create the 3D dock only while requested, releasing it on close."""
+        if isVisible:
+            if self._threeDDock is not None:
+                self._threeDDock.show()
+                self._threeDDock.raise_()
+                return
+            from .threeview import ThreeDView
+            dock = QDockWidget("3D View", self)
+            dock.setObjectName("threeDViewDock")
+            dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea |
+                                 Qt.DockWidgetArea.RightDockWidgetArea |
+                                 Qt.DockWidgetArea.BottomDockWidgetArea)
+            dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable |
+                             QDockWidget.DockWidgetFeature.DockWidgetMovable |
+                             QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+            document = self.controller.document()
+            partProvider = (document.parts if document.isHybrid()
+                            else self.controller.activePart)
+            view = ThreeDView(document, partProvider, dock)
+            dock.setWidget(view)
+            dock.visibilityChanged.connect(self._threeDVisibilityChanged)
+            self._threeDDock = dock
+            self._threeDView = view
+            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+            dock.show()
+        else:
+            dock = self._threeDDock
+            view = self._threeDView
+            self._threeDDock = None
+            self._threeDView = None
+            if view is not None:
+                view.releaseResources()
+            if dock is not None:
+                try:
+                    dock.visibilityChanged.disconnect(
+                                                self._threeDVisibilityChanged)
+                except (TypeError, RuntimeError):
+                    pass
+                dock.hide()
+                dock.deleteLater()
+
+    def _threeDVisibilityChanged(self, isVisible):
+        """Keep the toolbar toggle in sync with the dock's close button."""
+        if not isVisible and self._threeDDock is not None:
+            if self.actionX3D.isChecked():
+                self.actionX3D.setChecked(False)
+            else:
+                self.setThreeDVisible(False)
+
+    ### ACCESSORS ###
+    def undoStack(self):
+        return self.controller.undoStack()
+
+    def selectedPart(self):
+        return self.controller.document().selectedPart()
+
+    def activateSelection(self, isActive):
+        self.pathGraphicsView.activateSelection(isActive)
+        self.sliceGraphicsView.activateSelection(isActive)
+        for viewName in ('hybridHoneyPathGraphicsView',
+                         'hybridSquarePathGraphicsView',
+                         'hybridHoneySliceGraphicsView',
+                         'hybridSquareSliceGraphicsView'):
+            view = getattr(self, viewName, None)
+            if view is not None:
+                view.activateSelection(isActive)
+    # end def
+
+    ### EVENT HANDLERS ###
+    def focusInEvent(self):
+        app().undoGroup.setActiveStack(self.controller.undoStack())
+
+    def moveEvent(self, event):
+        """Reimplemented to save state on move."""
+        self.settings.beginGroup("MainWindow")
+        self.settings.setValue("pos", self.pos())
+        self.settings.endGroup()
+
+    def resizeEvent(self, event):
+        """Reimplemented to save state on resize."""
+        self.settings.beginGroup("MainWindow")
+        self.settings.setValue("size", self.size())
+        self.settings.endGroup()
+        QWidget.resizeEvent(self, event)
+
+    def changeEvent(self, event):
+        QWidget.changeEvent(self, event)
+    # end def
+
+    ### DRAWING RELATED ###
+    # def drawBackgroundGL(self, painter, rect):
+    #     """
+    #     This method is for overloading the QGraphicsScene.
+    #     """
+    #     if painter.paintEngine().type() != QPaintEngine.OpenGL and \
+    #         painter.paintEngine().type() != QPaintEngine.OpenGL2:
+    #
+    #         qWarning("OpenGLScene: drawBackground needs a QGLWidget to be set as viewport on the graphics view");
+    #         return
+    #     # end if
+    #     painter.beginNativePainting()
+    #     GL.glDisable(GL.GL_DEPTH_TEST) # disable for 2D drawing
+    #     GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+    #     GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+    #
+    #     painter.endNativePainting()
+    # # end def
+
+    # def drawBackgroundNonGL(self, painter, rect):
+    #     """
+    #     This method is for overloading the QGraphicsScene.
+    #     """
+    #     print self
+    #     return QGraphicsScene.drawBackground(self, painter, rect)
+    # # end def
+
+    ### PRIVATE HELPER METHODS ###
+    def _readSettings(self):
+        self.settings.beginGroup("MainWindow")
+        self.resize(self.settings.value("size", QSize(1100, 800)))
+        self.move(self.settings.value("pos", QPoint(200, 200)))
+        self.settings.endGroup()

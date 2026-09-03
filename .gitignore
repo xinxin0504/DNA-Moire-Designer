@@ -1,0 +1,23 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.log
+
+.venv/
+.venv-build/
+build_venv/
+
+build/
+dist/
+artifacts/
+
+*.dmg
+*.exe
+*.app/
+
+# Keep the bundled Athena command-line backends required to reproduce the
+# Designer's Windows build from the corresponding source release.
+!source/designer/designer_vendor/cadnano2/third_party/athena/tools/TALOS/TALOS.exe
+!source/designer/designer_vendor/cadnano2/third_party/athena/tools/METIS/METIS.exe
+!source/designer/designer_vendor/cadnano2/third_party/athena/tools/DAEDALUS2/DAEDALUS2.exe
+!source/designer/designer_vendor/cadnano2/third_party/athena/tools/PERDIX/PERDIX.exe

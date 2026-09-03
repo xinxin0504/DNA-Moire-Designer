@@ -1,0 +1,33 @@
+{
+  "release_name": "DNA Moiré Designer macOS Apple Silicon",
+  "release_version": "0.9.2",
+  "prepared_at": "2026-09-03",
+  "architecture": "arm64",
+  "minimum_macos": "13.0",
+  "source_baseline": "cross-platform v14 release snapshot dated 2026-09-03",
+  "product_surface": {
+    "language": "English only",
+    "included": [
+      "full DNA design workflow",
+      "sequence workflow and final export",
+      "Moiré analysis",
+      "official-base caDNAno Companion with JSON sequence preservation"
+    ],
+    "excluded": [
+      "Particle Analysis",
+      "Gel Analysis"
+    ]
+  },
+  "isolation": {
+    "writes_to_applications": false,
+    "modifies_cn24x": false,
+    "replaces_existing_app": false
+  },
+  "runtime": {
+    "python": "embedded by PyInstaller",
+    "qt": "PyQt6 6.9.1 / Qt 6.9.0",
+    "tesseract": "bundled arm64 command, libraries, and English OCR data",
+    "cadnano": "embedded caDNAno Companion 2.4.13 base"
+  },
+  "signing": "ad-hoc; Developer ID signing and notarization remain required for public distribution"
+}

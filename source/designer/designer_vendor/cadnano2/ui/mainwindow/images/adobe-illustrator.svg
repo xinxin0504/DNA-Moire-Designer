@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <rect x="3" y="3" width="42" height="42" rx="5" fill="#330000"
+        stroke="#ff9a00" stroke-width="2.5"/>
+  <text x="24" y="33" text-anchor="middle" font-family="Arial, sans-serif"
+        font-size="25" font-weight="600" fill="#ff9a00">Ai</text>
+</svg>
