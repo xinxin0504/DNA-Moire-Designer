@@ -3,8 +3,7 @@
 This package is the macOS Apple Silicon build of the validated cross-platform
 0.9.2 release source. It contains the English-only DNA design workflow,
 sequence workflow, final export, Moiré analysis, and the isolated official-base
-caDNAno Companion. Particle Analysis and Gel Analysis are intentionally
-excluded.
+caDNAno Companion.
 
 ## Install
 

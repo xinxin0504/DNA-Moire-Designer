@@ -6,8 +6,7 @@ Date: 2026-09-03
 
 - The release snapshot is independent of the active Designer and cn24x installation.
 - No file in the active installation was overwritten.
-- The Windows Designer exposes the complete design/sequence/export workflow and Moiré Analysis only.
-- Particle Analysis and Gel Analysis UI/worker source files were removed from the release snapshot.
+- The Windows Designer exposes the validated design, sequence, final-export, and Moiré Analysis workflows.
 - The Windows release is English-only. The language selector has been removed, and projects saved with a legacy Chinese-language preference are opened in English.
 - The Designer's validated private cadnano engine and the official-base companion cadnano are stored in separate package roots.
 - The companion package differs from the official cadnano2 package only in `legacydecoder.py` and `legacyencoder.py`; its separate launcher adds positional JSON opening and self-test support.
@@ -69,10 +68,6 @@ slash in the physical directory name).
 - 128-assignment mock regression passed with exact argument recovery
 - oversized payloads are now transferred through a short temporary response-file path rather than the Windows command line
 - accepted intermediate output uses the fixed short filename `sequenced_design.json`; final export names are unchanged
-
-### Reduced analysis surface
-
-Passed. The analysis stack contains one page, Moiré Analysis. Particle/Gel actions and builders are absent.
 
 ### Synthetic companion sequence round trip
 

@@ -2,7 +2,7 @@
 
 This kit builds one Windows installer containing two isolated applications:
 
-1. **DNA Moiré Designer** — the English-only validated design workflow plus **Moiré Analysis** only. Particle Analysis and Gel Analysis are not exposed or packaged.
+1. **DNA Moiré Designer** — the validated English-only design, sequence, final-export, and **Moiré Analysis** workflows.
 2. **cadnano2 Companion** — official cadnano2 2.4.13 plus the smallest JSON-I/O extension needed to open, edit, save, and reopen Designer JSON files with applied scaffold sequences.
 
 The Designer continues to use its own validated private cadnano design engine. The companion cadnano installation is not used for automatic routing or sequence design.

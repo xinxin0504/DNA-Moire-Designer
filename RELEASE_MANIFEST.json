@@ -25,10 +25,6 @@
       "full DNA design workflow",
       "sequence workflow and final export",
       "Moire Analysis"
-    ],
-    "excluded": [
-      "Particle Analysis",
-      "Gel Analysis"
     ]
   },
   "designer_source": {

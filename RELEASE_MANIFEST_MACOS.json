@@ -12,10 +12,6 @@
       "sequence workflow and final export",
       "Moiré analysis",
       "official-base caDNAno Companion with JSON sequence preservation"
-    ],
-    "excluded": [
-      "Particle Analysis",
-      "Gel Analysis"
     ]
   },
   "isolation": {
