@@ -6,8 +6,6 @@ and final-export workflow together with Moiré Analysis. The distribution also
 contains a caDNAno companion application for inspecting and editing generated
 designs while preserving sequence-bearing Designer JSON data.
 
-Particle Analysis and Gel Analysis are not included in this release.
-
 ## Downloads and installation
 
 Platform installers and portable archives are published on the GitHub Releases
