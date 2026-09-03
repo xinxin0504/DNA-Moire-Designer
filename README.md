@@ -28,6 +28,14 @@ page for version 0.9.2. See:
 - `tests`: release-surface, licensing, and companion round-trip checks;
 - `licenses`: curated license texts for bundled third-party components.
 
+## How to cite
+
+If you use DNA Moiré Designer in your research, please cite:
+
+Jing, X., Kroneberg, N., Peil, A. *et al.* DNA moiré superlattices.
+*Nat. Nanotechnol.* **20**, 1464–1472 (2025).
+[https://doi.org/10.1038/s41565-025-01976-3](https://doi.org/10.1038/s41565-025-01976-3)
+
 ## License
 
 The original DNA Moiré Designer code is distributed under the GNU General
